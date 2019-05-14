@@ -41,7 +41,7 @@ public class test {
                     myThreads.add(thread);
                     thread.start();
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(30);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -60,14 +60,16 @@ public class test {
             // super.run();
             try{
                 while (true){
-                    this.sleep(200);
+                    // 转发数据非常尽量快
+                    Thread.sleep(5);
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     if (reader.ready()){
                         String clientMessag = reader.readLine();
                         System.out.println("客户端:"+id+"发送"+clientMessag);
                         for (int i=0;i<myThreads.size();i++){
                             if (myThreads.get(i).id != id){
-                                myThreads.get(i).sendData("客户端:"+id+"发送"+clientMessag);
+                                // 转发数据
+                                myThreads.get(i).sendData(clientMessag);
                             }
                         }
                     }
@@ -85,6 +87,15 @@ public class test {
             }catch (Exception e){e.printStackTrace();}
         }
 
+    }
+    
+    // 将数据发送给id的线程
+    private void transform(String id, String data){
+        for(int i=0; i < myThreads.size();i++){
+            if(myThreads.get(i).id.equals(id)) {
+                myThreads.get(i).sendData(data);
+            }
+        }
     }
     public static void main(String[] argv){
         System.out.println("Hello world");
