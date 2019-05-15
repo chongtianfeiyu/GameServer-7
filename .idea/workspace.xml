@@ -46,10 +46,10 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1718" />
-    <option name="y" value="46" />
-    <option name="width" value="1382" />
-    <option name="height" value="762" />
+    <option name="x" value="32767" />
+    <option name="y" value="32767" />
+    <option name="width" value="3306" />
+    <option name="height" value="1100" />
   </component>
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
