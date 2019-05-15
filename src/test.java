@@ -37,8 +37,30 @@ public class test {
         }
         return true;
     }
+    // handle login
+    private void handleLogin(String data) {
+        String[] splits = data.split("\\|");
+        String usename = splits[0];
+        String password = splits[1];
+        // 查询数据库
+        // 1 正确返回 status = 200
 
-    //
+        // 2 错误返回 status = 502
+        // 3 断开连接
+    }
+
+    // handle logout
+    private void handleLogout(String data){
+
+    }
+    // handle transmit
+    private void handleTransmit(String data){
+
+    }
+    // handle gameover
+    private void  handleGameOver(String data){
+
+    }
     class ListenClient implements Runnable {
         final int port = 8080;
         @Override
