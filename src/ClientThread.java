@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 // 客户端连接线程类
-public class ClientThread extends Thread {
+public class ClientThread implements Runnable {
     private String clientId = null; // 线程id
     private String opponentId = null ; // 对手id
     private Socket socket = null; // 该客户端线程的socket
@@ -39,7 +39,6 @@ public class ClientThread extends Thread {
     }
     @Override
     public void run() {
-        super.run();
         // 转发数据
         while (true) {
             try {

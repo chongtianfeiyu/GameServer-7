@@ -20,6 +20,24 @@ public class test {
         listenClient = new ListenClient();
         listenClient.run();
     }
+    // 路由配置
+    // 配置login请求，转发数据请求，logout请求
+    private boolean Router(String data){
+        // data 数据格式 Type-Value
+        String[] splits = data.split("-");
+        String Type = splits[0];
+        if (Type.equals(RequestType.LOGIN)){
+            // 登陆请求
+        }else if (Type.equals(RequestType.LOGOUT)){
+            // 登出请求
+        }else if (Type.equals(RequestType.GAMEOVER)){
+            // 游戏结束请求
+        }else if (Type.equals(RequestType.TRANSMIT)){
+            // 转发数据请求
+        }
+        return true;
+    }
+
     //
     class ListenClient implements Runnable {
         final int port = 8080;
@@ -88,7 +106,7 @@ public class test {
         }
 
     }
-    
+
     // 将数据发送给id的线程
     private void transform(String id, String data){
         for(int i=0; i < myThreads.size();i++){
