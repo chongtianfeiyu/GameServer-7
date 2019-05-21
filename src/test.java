@@ -1,4 +1,7 @@
 
+import utils.Json;
+
+import javax.swing.text.Style;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -106,6 +109,13 @@ public class test {
                     if (reader.ready()){
                         String clientMessag = reader.readLine();
                         System.out.println("客户端:"+id+"发送"+clientMessag);
+                        String type = Json.getType(clientMessag);
+                        if (type.equals(RequestType.LOGIN)){
+                            //
+                            System.out.println("登陆信息"+clientMessag);
+                            String success = "{\"type\":\"LOGINSUCCESS\"}";
+                            myThreads.get(0).sendData(success);
+                        }
                         for (int i=0;i<myThreads.size();i++){
                             if (myThreads.get(i).id != id){
                                 // 转发数据
