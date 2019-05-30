@@ -1,5 +1,6 @@
 package utils;
 
+import JsonData.LoginJson;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -16,5 +17,9 @@ public class Json {
             type = map.get("type").toString();
         }catch (IOException e){e.printStackTrace();}
         return type;
+    }
+    // 获得登陆的object
+    public static LoginJson getLoginObject(String data) throws Exception {
+        return mapper.readValue(data,LoginJson.class);
     }
 }
