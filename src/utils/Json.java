@@ -1,6 +1,7 @@
 package utils;
 
 import JsonData.LoginJson;
+import JsonData.ResponseType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -21,5 +22,18 @@ public class Json {
     // 获得登陆的object
     public static LoginJson getLoginObject(String data) throws Exception {
         return mapper.readValue(data,LoginJson.class);
+    }
+    // 获得登入成功的字符串
+    public static String getLoginSuccessResponse(String account){
+        String type = ResponseType.LOGINSUCCESS;
+        return "{\"type\":\""+type+"\"," +
+                "\"value\":\""+account+"\"}";
+    }
+
+    // 获得登陆失败的字符串
+    public static String getLoginFailureResponse(String status){
+        String type = ResponseType.LOGINFAILUE;
+        return "{\"type\":\""+type+"\"," +
+                "\"value\":\""+status+"\"}";
     }
 }

@@ -1,4 +1,6 @@
 
+import Dao.Impl.UserDaoImpl;
+import Dao.UserDao;
 import JsonData.LoginJson;
 import utils.Config;
 import utils.Json;
@@ -36,6 +38,7 @@ public class Server {
         verifiedClient = new HashMap<>();
         // 客户端监听线程
         listenClient = new ListenClient();
+        listenClient.run();
     }
 
     // 路由配置
@@ -56,22 +59,30 @@ public class Server {
     }
     // handle login
     private void handleLogin(String data,ClientThread clientThread) {
-
         try {
             LoginJson loginJson = Json.getLoginObject(data);
             // 查询数据库
             String account = loginJson.getAccount();
             String password = loginJson.getPassword();
-            // 1 正确返回 status = 200
-            // 用验证账号密码的争取性
-            // 设置该线程的id
-            clientThread.setId(account);
-            verifiedClient.put(account, clientThread);
-            // 2 错误返回 status = 502
-            // 返回登陆登入成功,
-//            clientThread.sendData();
-            // 3 断开连链
-        }catch (Exception e){e.printStackTrace();}
+            UserDao userDao = new UserDaoImpl();
+            if (userDao.login(account,password)){
+                // 登陆成功，返回成功的信息
+                clientThread.setId(account);
+                verifiedClient.put(account,clientThread); // 加入验证后的map
+                String re =Json.getLoginSuccessResponse(account);
+                clientThread.sendData(re);
+            }else {
+                // 登陆失败
+                String status = "账号密码错误";
+                String re =Json.getLoginFailureResponse(status);
+                clientThread.sendData(re);
+                // 返回失败的状态信息
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            clientThread.sendData(Json.getLoginFailureResponse("服务器出错"));
+        }
+
     }
 
     // handle logout
@@ -110,6 +121,7 @@ public class Server {
                     // 新建监听线程
                     ClientThread thread = new ClientThread(socket,Integer.toString((int)(1+Math.random()*1000)));
                     clientThreads.add(thread); // 添加进连接线程中
+                    thread.run();
                 try {
                     Thread.sleep(60);
                 } catch (InterruptedException e) {
