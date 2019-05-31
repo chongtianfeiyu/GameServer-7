@@ -53,6 +53,7 @@ public class Server {
 
         }else if (type.equals(RequestType.GAMEOVER)){
             // 游戏结束请求
+            handleGameOver(data,clientThread);
         }else if (type.equals(RequestType.TRANSMIT)){
             // 转发数据请求
         }
@@ -94,7 +95,15 @@ public class Server {
 
     }
     // handle gameover
-    private void  handleGameOver(String data){
+    private void  handleGameOver(String data,ClientThread clientThread){
+        // 获得对手的id
+
+        // 向对手发送游戏结束数据
+
+    }
+
+    // TODO 接收游戏的成绩
+    private void handleGameGrade(String data,ClientThread clientThread){
 
     }
     // 客户端监听类
