@@ -1,6 +1,7 @@
 
 import Dao.Impl.UserDaoImpl;
 import Dao.UserDao;
+import DataType.GameOverType;
 import JsonData.LoginJson;
 import utils.Config;
 import utils.Json;
@@ -15,6 +16,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 public class Server {
     ServerSocket server = null;
@@ -25,8 +27,9 @@ public class Server {
     // 连接线程
     private ArrayList<ClientThread> clientThreads;
     //
-    HashMap<String,ClientThread> verifiedClient; // 已经验证的客户端连接
-
+    private HashMap<String,ClientThread> verifiedClient; // 已经验证的客户端连接
+    private Stack<String> matchPoor; // 待匹配池
+    private HashMap<String,String> matchMap; // 匹配信息
     public Server(){
         init();
     }
@@ -36,6 +39,9 @@ public class Server {
         clientThreads = new ArrayList<>();
         // 已经验证的线程
         verifiedClient = new HashMap<>();
+        // 匹配池
+        matchPoor = new Stack<>();
+        matchMap = new HashMap<>();
         // 客户端监听线程
         listenClient = new ListenClient();
         listenClient.run();
@@ -43,19 +49,29 @@ public class Server {
 
     // 路由配置
     // 配置login请求，转发数据请求，logout请求
-    private void Router(String data, ClientThread clientThread ) {
+    public void Router(String data, ClientThread clientThread ) {
         String type = Json.getType(data); // 获得类型
-        if (type.equals(RequestType.LOGIN)){
+        if ("ERROR".equals(type)){
+            // 错误的类型
+            System.out.println("错误的数据格式:"+data);
+        }else if (type.equals(RequestType.UPDATEGAMEBLOCK)){
+            // 更新游戏方块数据,传输量最大，优先判断
+            handleUpdateGameBlock(data,clientThread);
+        }else if (type.equals(RequestType.LOGIN)){
             // 登陆请求
             handleLogin(data,clientThread);
         }else if (type.equals(RequestType.LOGOUT)){
             // 登出请求
-
-        }else if (type.equals(RequestType.GAMEOVER)){
+        }else if (type.equals(RequestType.MATCH)) {
+            // 匹配请求
+            handleGameMatch(clientThread);
+        }
+        else if (type.equals(RequestType.GAMEOVER)){
             // 游戏结束请求
             handleGameOver(data,clientThread);
-        }else if (type.equals(RequestType.TRANSMIT)){
-            // 转发数据请求
+        }else if (type.equals(RequestType.GAMEGRADE)){
+            // 处理游戏数据
+            handleGameGrade(data,clientThread);
         }
     }
     // handle login
@@ -90,20 +106,95 @@ public class Server {
     private void handleLogout(String data){
 
     }
+
     // handle transmit
     private void handleTransmit(String data){
 
     }
-    // handle gameover
+    // TODO 游戏结束请求
     private void  handleGameOver(String data,ClientThread clientThread){
         // 获得对手的id
+        String ownID = clientThread.id;
+        String opponentID = matchMap.get(ownID); // 从匹配信息中获得对手id
+        // 将结束信息转义 win1 <-> defeat1 win2 <-> defeat2
+        String gameOverType=null;
+        ClientThread opponentClient=verifiedClient.get(opponentID);
+        try{
+            gameOverType = Json.getJsonMap(data).get("value").toString();
+        }catch (IOException e){
+            System.out.println("解析GameOverType错误");
+            e.printStackTrace();
+        }
 
+        // 从客户端发送过来的游戏结束信息有两种
+        // 1、扫完雷了 WIN1
+        // 2、我方碰雷了 DEFEAT2
+        if (gameOverType==null){
+            System.out.println("游戏结束信息错误");
+        }else if (gameOverType.equals(GameOverType.WIN1)){
+            gameOverType = GameOverType.DEFEAT1; //转义
+            sendGameOverResponse(gameOverType,opponentClient);
+            removeMatch(ownID,opponentID);
+        }else if (gameOverType.equals(GameOverType.DEFEAT2)){
+            gameOverType = GameOverType.WIN2;
+            sendGameOverResponse(gameOverType,opponentClient);
+            removeMatch(ownID,opponentID);
+        }
+    }
+    // 解除匹配
+    private void removeMatch(String id1,String id2){
+        matchMap.remove(id1);
+        matchMap.remove(id2);
+    }
+    // 发送游戏结束请求
+    private void sendGameOverResponse(String gameOverType,ClientThread clientThread){
+         String re =Json.getGameOverResponse(gameOverType);
         // 向对手发送游戏结束数据
-
+        System.out.println("向对方发送:"+re);
+        clientThread.sendData(re);
+    }
+    // TODO handleUpdateGameBlock
+    private void handleUpdateGameBlock(String data,ClientThread clientThread){
+        // 获得对手的线程，向对手发送游戏数据
+        String opponentId = matchMap.get(clientThread.id);
+        verifiedClient.get(opponentId).sendData(data); // 转发数据
     }
 
+    // TODO 匹配游戏请求
+    private void handleGameMatch(ClientThread clientThread){
+        // 判断匹配
+        String ownID = clientThread.id;
+        if (matchPoor.empty()){
+            // 当前匹配池中没有待匹配，进栈
+            matchPoor.push(ownID);
+        }else{
+            // 栈顶的待匹配线程出栈
+            String opponentId = matchPoor.pop();
+            // 设置匹配信息,双向关联
+            matchMap.put(ownID,opponentId);
+            matchMap.put(opponentId,ownID);
+            // 返回匹配成功信息
+            String re1 = Json.getMatchSuccessResponse(opponentId);
+            clientThread.sendData(re1);
+            String re2 = Json.getMatchSuccessResponse(ownID);
+            verifiedClient.get(opponentId).sendData(re2);// 向对方发送匹配成功我的id
+        }
+        //
+    }
     // TODO 接收游戏的成绩
     private void handleGameGrade(String data,ClientThread clientThread){
+        try{
+            Map gameGrade = Json.getJsonMap(data);
+            String gameOverType = gameGrade.get("gameOverType").toString();
+            String opponentId = gameGrade.get("opponentId").toString();
+            String time = gameGrade.get("time").toString();
+            String description = gameGrade.get("description").toString();
+            // 游戏成绩
+            String output =gameOverType+"|"+opponentId+"|"+time+"|"+description;
+            System.out.println(output);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
 
     }
     // 客户端监听类
@@ -211,18 +302,9 @@ public class Server {
             }catch (Exception e){e.printStackTrace();}
         }
     }
-
-    // 将数据发送给id的线程
-//    private void transform(String id, String data){
-//        for(int i=0; i < myThreads.size();i++){
-//            if(myThreads.get(i).id.equals(id)) {
-//                myThreads.get(i).sendData(data);
-//            }
-//        }
-//    }
     public static void main(String[] argv){
         System.out.println("Hello world");
-        new Server();
+       Server server =  new Server();
 
 
     }

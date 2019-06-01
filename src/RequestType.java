@@ -5,5 +5,5 @@ public class RequestType {
     public static String GAMEOVER = "GAMEOVER";
     public static String UPDATEGAMEBLOCK = "UPDATEGAMEBLCOK";
     public static String MATCH = "MATCH"; // 匹配请求
-    RequestType(){}
+    public static String GAMEGRADE = "GAMEGRADE"; // 游戏成绩
 }
