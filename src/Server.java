@@ -192,6 +192,10 @@ public class Server {
             // 游戏成绩
             String output =gameOverType+"|"+opponentId+"|"+time+"|"+description;
             System.out.println(output);
+
+            // 插入数据
+            UserDao userDao = new UserDaoImpl();
+            userDao.insertGrade(clientThread.id,opponentId,Integer.valueOf(time),gameOverType,description);
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -233,8 +237,9 @@ public class Server {
 
     //  客户端线程
     class ClientThread implements Runnable {
-        Socket socket= null;
-        String id = null;
+        Socket socket;
+        String id;
+//        Server server;
         ClientThread(Socket socket, String id){
             this.socket = socket;
             this.id = id;
@@ -250,34 +255,6 @@ public class Server {
                     if (reader.ready()){
                         String data = reader.readLine();
                         Router(data,this);
-//                        System.out.println("客户端:"+id+"发送"+clientMessag);
-//                        String type = Json.getType(clientMessag);
-//                        if (type.equals(RequestType.LOGIN)){
-//                            //
-//                            System.out.println("登陆信息"+clientMessag);
-//                            String success = "{\"type\":\"LOGINSUCCESS\",\"value\":\"45453232\"}";
-////                            myThreads.get(0).sendData(success);
-//                        }else if (type.equals(RequestType.MATCH)){
-//                            System.out.println("匹配请求");
-//                            String re = "" +
-//                                    "{\"type\":\"MATCHSUCCESS\"," +
-//                                    "\"value\":\"32323232\"}";
-////                            myThreads.get(0).sendData(re);
-//                        }else if (type.equals(RequestType.UPDATEGAMEBLOCK)){
-//                            // 棋盘更新数据
-////                            for (ClientThread myThread:myThreads){
-////                                if (myThread.id != id){
-////                                    myThread.sendData(clientMessag);
-////                                }
-////                            }
-//                        }
-//
-//                        for (int i=0;i<myThreads.size();i++){
-//                            if (myThreads.get(i).id != id){
-//                                // 转发数据
-//                                myThreads.get(i).sendData(clientMessag);
-//                            }
-//                        }
                     }
                 }
             }catch (Exception e){e.printStackTrace();}
@@ -302,10 +279,11 @@ public class Server {
             }catch (Exception e){e.printStackTrace();}
         }
     }
-    public static void main(String[] argv){
-        System.out.println("Hello world");
-       Server server =  new Server();
-
-
-    }
+//    public static void main(String[] argv){
+//        System.out.println("Hello world");
+//       Server server =  new Server();
+//
+//
+//
+//    }
 }

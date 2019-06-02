@@ -8,4 +8,5 @@ public interface UserDao {
     * @param password 密码
     * */
     boolean login(String account,String password);
+    boolean insertGrade(String account,String opponentId,int costTime,String status,String description);
 }
