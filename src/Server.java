@@ -22,7 +22,7 @@ public class Server {
     ServerSocket server = null;
     Socket socket = null;
     final int port = 8080;
-    ListenClient listenClient; // 客户端监听线程
+    private ListenClient listenClient; // 客户端监听线程
     // ArrayList<Socket> sockets = new ArrayList<>();
     // 连接线程
     private ArrayList<ClientThread> clientThreads;
@@ -83,14 +83,20 @@ public class Server {
             String password = loginJson.getPassword();
             UserDao userDao = new UserDaoImpl();
             if (userDao.login(account,password)){
-                // 登陆成功，返回成功的信息
-                clientThread.setId(account);
-                verifiedClient.put(account,clientThread); // 加入验证后的map
-                String re =Json.getLoginSuccessResponse(account);
-                clientThread.sendData(re);
+                if (verifiedClient.get(account) != null){
+                    String status = "2";
+                    String re = Json.getLoginFailureResponse(status);
+                    clientThread.sendData(re); // 发送重复登陆信息
+                }else{
+                     // 登陆成功，返回成功的信息
+                     clientThread.setId(account);
+                     verifiedClient.put(account,clientThread); // 加入验证后的map
+                     String re =Json.getLoginSuccessResponse(account);
+                    clientThread.sendData(re);
+                }
             }else {
-                // 登陆失败
-                String status = "账号密码错误";
+                // 登陆失败,密码错误
+                String status = "1";
                 String re =Json.getLoginFailureResponse(status);
                 clientThread.sendData(re);
                 // 返回失败的状态信息
@@ -107,10 +113,6 @@ public class Server {
 
     }
 
-    // handle transmit
-    private void handleTransmit(String data){
-
-    }
     // TODO 游戏结束请求
     private void  handleGameOver(String data,ClientThread clientThread){
         // 获得对手的id
@@ -132,10 +134,10 @@ public class Server {
         if (gameOverType==null){
             System.out.println("游戏结束信息错误");
         }else if (gameOverType.equals(GameOverType.WIN1)){
-            gameOverType = GameOverType.DEFEAT1; //转义
+            gameOverType = GameOverType.DEFEAT2; //转义
             sendGameOverResponse(gameOverType,opponentClient);
             removeMatch(ownID,opponentID);
-        }else if (gameOverType.equals(GameOverType.DEFEAT2)){
+        }else if (gameOverType.equals(GameOverType.DEFEAT1)){
             gameOverType = GameOverType.WIN2;
             sendGameOverResponse(gameOverType,opponentClient);
             removeMatch(ownID,opponentID);
@@ -157,7 +159,18 @@ public class Server {
     private void handleUpdateGameBlock(String data,ClientThread clientThread){
         // 获得对手的线程，向对手发送游戏数据
         String opponentId = matchMap.get(clientThread.id);
-        verifiedClient.get(opponentId).sendData(data); // 转发数据
+        if (verifiedClient.get(opponentId) != null){
+            verifiedClient.get(opponentId).sendData(data); // 转发数据
+        }else
+        {
+            System.out.println("没有匹配到对手");
+            // 转发到所有线程
+            for (ClientThread clientThread1:clientThreads){
+                if (clientThread1.id.equals(clientThread.id)){}
+                else{clientThread1.sendData(data);}
+            }
+        }
+
     }
 
     // TODO 匹配游戏请求
@@ -199,8 +212,29 @@ public class Server {
         }catch (IOException e){
             e.printStackTrace();
         }
-
     }
+
+    // TODO 销毁客户端连接线程
+    private void disposeClientThread(ClientThread clientThread){
+        String clientId = clientThread.id;
+        //
+        if (verifiedClient.get(clientId)!=null) {
+            // 移出认证线程映射
+            verifiedClient.remove(clientId);
+        }
+        // 第一种
+//       for (int i=0;i<clientThreads.size();i++){
+//           if (clientThreads.get(i).id.equals(clientId)){
+//               // 移出线程
+//               clientThreads.remove(i);
+//           }
+//       }
+        // 第二种方法
+//        clientThreads.remove(clientThreads.indexOf(clientThread));
+        //
+        clientThreads.remove(clientThread);
+    }
+
     // 客户端监听类
     class ListenClient implements Runnable {
         final int port = Config.getPort();
@@ -214,18 +248,28 @@ public class Server {
             while (true) {
                 try {
                     // 监听端口
+                    System.out.println("正在监听端口");
                     socket = server.accept();
                 }catch (IOException e)
                 {
                     e.printStackTrace();
                 }
+                    System.out.println("新的连接");
                     System.out.println("端口"+socket.getPort());
                     System.out.println("地址"+socket.getInetAddress());
                     // sockets.add(socket);
                     // 新建监听线程
-                    ClientThread thread = new ClientThread(socket,Integer.toString((int)(1+Math.random()*1000)));
-                    clientThreads.add(thread); // 添加进连接线程中
-                    thread.run();
+                     new Thread(new Runnable() {
+                         @Override
+                        public void run() {
+                        // 处理新连接的线程
+                             ClientThread thread = new ClientThread(socket,Integer.toString((int)(1+Math.random()*1000)));
+                             clientThreads.add(thread); // 添加进连接线程中
+                             thread.run();
+                             System.out.println("处理新的连接");
+                        }
+                    }).start();
+
                 try {
                     Thread.sleep(60);
                 } catch (InterruptedException e) {
@@ -239,6 +283,7 @@ public class Server {
     class ClientThread implements Runnable {
         Socket socket;
         String id;
+        private boolean exit = false;
 //        Server server;
         ClientThread(Socket socket, String id){
             this.socket = socket;
@@ -248,7 +293,7 @@ public class Server {
         public void run() {
             // super.run();
             try{
-                while (true){
+                while (!exit){
                     // 转发数据非常尽量快
                     Thread.sleep(5);
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -272,18 +317,32 @@ public class Server {
         public void sendData(String s){
             try {
                 PrintWriter writer = new PrintWriter(socket.getOutputStream());
-                if (writer!= null){
+                if (writer != null){
                     writer.println(s);
                     writer.flush();
+                }else{
+                    // 获取不了,就结束该socket和线程
+                    disconnect();
                 }
-            }catch (Exception e){e.printStackTrace();}
+            }catch (Exception e){
+                e.printStackTrace();
+                disconnect();
+            }
+        }
+        // 退出线程
+        private void disposeThread(){
+            // 通知主线程处理相关的变量
+//            disposeClientThread(this);
+            exit = true; // 设置标志，让线程正常结束
+//            try {
+//                socket.close();
+//            }catch (IOException e){e.printStackTrace();}
+        }
+        // 断开连接处理函数
+        private void disconnect(){
+            // 通知主线程将自己移出线程队列
+            disposeClientThread(this);
+            disposeThread();
         }
     }
-//    public static void main(String[] argv){
-//        System.out.println("Hello world");
-//       Server server =  new Server();
-//
-//
-//
-//    }
 }

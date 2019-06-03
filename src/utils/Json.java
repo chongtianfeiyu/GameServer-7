@@ -56,7 +56,7 @@ public class Json {
 
     // 获得登陆失败的字符串
     public static String getLoginFailureResponse(String status){
-        String type = ResponseType.LOGINFAILUE;
+        String type = ResponseType.LOGINFAILURE;
         return "{\"type\":\""+type+"\"," +
                 "\"value\":\""+status+"\"}";
     }
