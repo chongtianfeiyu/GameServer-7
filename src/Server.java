@@ -113,7 +113,7 @@ public class Server {
 
     }
 
-    // TODO 游戏结束请求
+    //  游戏结束请求
     private void  handleGameOver(String data,ClientThread clientThread){
         // 获得对手的id
         String ownID = clientThread.id;
@@ -155,7 +155,7 @@ public class Server {
         System.out.println("向对方发送:"+re);
         clientThread.sendData(re);
     }
-    // TODO handleUpdateGameBlock
+    //  handleUpdateGameBlock
     private void handleUpdateGameBlock(String data,ClientThread clientThread){
         // 获得对手的线程，向对手发送游戏数据
         String opponentId = matchMap.get(clientThread.id);
@@ -173,7 +173,7 @@ public class Server {
 
     }
 
-    // TODO 匹配游戏请求
+    //  匹配游戏请求
     private void handleGameMatch(ClientThread clientThread){
         // 判断匹配
         String ownID = clientThread.id;
@@ -194,7 +194,7 @@ public class Server {
         }
         //
     }
-    // TODO 接收游戏的成绩
+    //  接收游戏的成绩
     private void handleGameGrade(String data,ClientThread clientThread){
         try{
             Map gameGrade = Json.getJsonMap(data);
