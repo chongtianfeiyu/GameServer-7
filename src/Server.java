@@ -30,6 +30,7 @@ public class Server {
     private HashMap<String,ClientThread> verifiedClient; // 已经验证的客户端连接
     private Stack<String> matchPoor; // 待匹配池
     private HashMap<String,String> matchMap; // 匹配信息
+
     public Server(){
         init();
     }
@@ -42,12 +43,15 @@ public class Server {
         // 匹配池
         matchPoor = new Stack<>();
         matchMap = new HashMap<>();
+
         // 客户端监听线程
         listenClient = new ListenClient();
-        listenClient.run();
+        listenClient.start(); // 使用run()不会再往下运行了
 
+        System.out.println("运行至此");
         // 判断客户端是否还在线线程
-
+        CheckClient checkClient = new CheckClient();
+        checkClient.start();
     }
 
     // 路由配置
@@ -239,11 +243,12 @@ public class Server {
         // 第二种方法
 //        clientThreads.remove(clientThreads.indexOf(clientThread));
         //
+        System.out.println("销毁线程"+clientThread.id);
         clientThreads.remove(clientThread);
     }
 
     // 客户端监听类
-    class ListenClient implements Runnable {
+    class ListenClient extends Thread {
         final int port = Config.getPort();
         @Override
         public void run() {
@@ -291,31 +296,36 @@ public class Server {
         Socket socket;
         String id;
         private boolean exit = false;
-//        Server server;
-        ClientThread(Socket socket, String id){
+
+        //        Server server;
+        ClientThread(Socket socket, String id) {
             this.socket = socket;
             this.id = id;
         }
+
         @Override
         public void run() {
-            try{
-                while (!exit){
+            try {
+                while (!exit) {
                     // 转发数据非常尽量快
                     Thread.sleep(5);
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    if (reader.ready()){
+                    if (reader.ready()) {
                         String data = reader.readLine();
                         // 对数据进行格式校验
-                        if(Json.verifiedData(data)) {
+                        if (Json.verifiedData(data)) {
                             // 校验通过
                             Router(data, this);
-                        }else {
-                            System.out.println("传输的数据格式出错"+data);
+                        } else {
+                            System.out.println("传输的数据格式出错" + data);
                         }
                     }
                 }
-            }catch (Exception e){e.printStackTrace();}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+
         //
         public String getId() {
             return id;
@@ -326,23 +336,24 @@ public class Server {
         }
 
         // 发送数据函数
-        public void sendData(String s){
+        public void sendData(String s) {
             try {
                 PrintWriter writer = new PrintWriter(socket.getOutputStream());
-                if (writer != null){
+                if (writer != null) {
                     writer.println(s);
                     writer.flush();
-                }else{
+                } else {
                     // 获取不了,就结束该socket和线程
                     disconnect();
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
                 disconnect();
             }
         }
+
         // 退出线程
-        private void disposeThread(){
+        private void disposeThread() {
             // 通知主线程处理相关的变量
 //            disposeClientThread(this);
             exit = true; // 设置标志，让线程正常结束
@@ -350,11 +361,53 @@ public class Server {
 //                socket.close();
 //            }catch (IOException e){e.printStackTrace();}
         }
+
         // 断开连接处理函数
-        private void disconnect(){
+        private void disconnect() {
             // 通知主线程将自己移出线程队列
             disposeClientThread(this);
             disposeThread();
+        }
+    }
+    // 判断连接是否还在线程
+    class CheckClient extends Thread{
+        boolean exit = false; // 退出标志
+        public CheckClient() {
+        }
+        @Override
+        public void run() {
+            System.out.println("启动判断客户端是否在线线程");
+            while (!exit){
+                for (ClientThread clientThread:clientThreads){
+                    if (!isAlive(clientThread)){
+                        //TODO 处理断开的线程
+                        System.out.println("客户端"+clientThread.id+"已经断开连接");
+                    }
+                    else{
+                        System.out.println("客户端"+clientThread.id+"还在连接状态");
+                    }
+                }
+                try {
+                    Thread.sleep(4000);
+                }catch (InterruptedException e){
+                    // TODO 异常处理
+                    e.printStackTrace();
+                }
+            }
+        }
+        // 核心判断函数
+        /*往现在存在的线程中发送一个字符串，如果发送成功返回true,发送失败返回false
+         * */
+        boolean isAlive(ClientThread clientThread){
+            boolean status = true;
+            try{
+                Socket socket = clientThread.socket;
+                // 能够正常的写数据则说明连接还存在
+                socket.getOutputStream().write(0xff);
+            }catch (Exception e){
+                status = false;
+            }
+            return status;
         }
     }
 }
