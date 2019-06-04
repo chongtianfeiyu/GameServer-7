@@ -45,6 +45,9 @@ public class Server {
         // 客户端监听线程
         listenClient = new ListenClient();
         listenClient.run();
+
+        // 判断客户端是否还在线线程
+
     }
 
     // 路由配置
