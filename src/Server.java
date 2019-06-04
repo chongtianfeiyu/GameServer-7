@@ -295,7 +295,6 @@ public class Server {
         }
         @Override
         public void run() {
-            // super.run();
             try{
                 while (!exit){
                     // 转发数据非常尽量快
@@ -304,11 +303,12 @@ public class Server {
                     if (reader.ready()){
                         String data = reader.readLine();
                         // 对数据进行格式校验
-                        if(Json.valifiedData(data)) {
+                        if(Json.verifiedData(data)) {
                             // 校验通过
                             Router(data, this);
-                        }else {System.out.println("传输的数据格式出错"+data);}
-
+                        }else {
+                            System.out.println("传输的数据格式出错"+data);
+                        }
                     }
                 }
             }catch (Exception e){e.printStackTrace();}

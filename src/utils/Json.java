@@ -75,7 +75,7 @@ public class Json {
     }
 
     // 校验格式是否符合规范
-    public static boolean valifiedData(String data){
+    public static boolean verifiedData(String data){
        boolean status = true;
        try {
            Map map = mapper.readValue(data,new TypeReference<Map<String,Object>>(){});
@@ -85,6 +85,8 @@ public class Json {
            }
        }catch (IOException e){
            status = false;
+       }catch (NullPointerException e){
+           status = false; // 空字符串的传值
        }
        return status; // 返回判断的
     }
