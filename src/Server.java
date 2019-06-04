@@ -62,6 +62,7 @@ public class Server {
             handleLogin(data,clientThread);
         }else if (type.equals(RequestType.LOGOUT)){
             // 登出请求
+            handleLogout(data,clientThread);
         }else if (type.equals(RequestType.MATCH)) {
             // 匹配请求
             handleGameMatch(clientThread);
@@ -109,7 +110,10 @@ public class Server {
     }
 
     // handle logout
-    private void handleLogout(String data){
+    private void handleLogout(String data,ClientThread clientThread){
+        System.out.println("用户:"+clientThread.id+"登出");
+        System.out.println("数据:"+data);
+        // 相关变量的处理
 
     }
 
@@ -299,7 +303,12 @@ public class Server {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     if (reader.ready()){
                         String data = reader.readLine();
-                        Router(data,this);
+                        // 对数据进行格式校验
+                        if(Json.valifiedData(data)) {
+                            // 校验通过
+                            Router(data, this);
+                        }else {System.out.println("传输的数据格式出错"+data);}
+
                     }
                 }
             }catch (Exception e){e.printStackTrace();}

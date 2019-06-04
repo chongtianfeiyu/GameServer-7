@@ -3,6 +3,7 @@ package utils;
 import JsonData.LoginJson;
 import JsonData.ResponseJson.NormalResponseJson;
 import JsonData.ResponseType;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,5 +72,20 @@ public class Json {
     public static String getGameOverResponse(String gameOverType){
         String type = ResponseType.GAMEOVER;
         return getNormalJson(type,gameOverType);
+    }
+
+    // 校验格式是否符合规范
+    public static boolean valifiedData(String data){
+       boolean status = true;
+       try {
+           Map map = mapper.readValue(data,new TypeReference<Map<String,Object>>(){});
+           String type = map.get("type").toString();
+           if (type == null){
+               status = false;
+           }
+       }catch (IOException e){
+           status = false;
+       }
+       return status; // 返回判断的
     }
 }
