@@ -228,6 +228,7 @@ public class Server {
         //
         if (verifiedClient.get(clientId)!=null) {
             // 移出认证线程映射
+            System.out.println("将client"+clientId+"移出认证map");
             verifiedClient.remove(clientId);
         }
         // 第一种
@@ -375,10 +376,13 @@ public class Server {
         public void run() {
             System.out.println("启动判断客户端是否在线线程");
             while (!exit){
-                for (ClientThread clientThread:clientThreads){
+                for (int i=0;i<clientThreads.size();i++){
+                    ClientThread clientThread = clientThreads.get(i);
                     if (!isAlive(clientThread)){
                         //TODO 处理断开的线程
                         System.out.println("客户端"+clientThread.id+"已经断开连接");
+                        disposeClientThread(clientThread);
+                        break; // 退出当前循环,重新判断
                     }
                     else{
                         System.out.println("客户端"+clientThread.id+"还在连接状态");
