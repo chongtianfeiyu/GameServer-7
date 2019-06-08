@@ -390,7 +390,7 @@ public class Server {
                 }
                 try {
                     // 十秒种的间隔判断
-                    Thread.sleep(10000);
+                    Thread.sleep(6000);
                 }catch (InterruptedException e){
                     // TODO 异常处理
                     e.printStackTrace();
